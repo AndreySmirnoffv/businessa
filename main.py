@@ -1,62 +1,72 @@
+from chrome.main import process_telegram_login, process_telegram_contact_to_two_w, process_telegram_contact_to_three_w
+from chrome.main_p import process_telegram_login, process_telegram_contact_to_two_p, process_telegram_contact_to_three_p
+from chrome.emoji import process_telegram_contact_to_emoji
 import socket
 import json
-from chrome.main import process_telegram_login, process_telegram_contact
 
-def start_server():
-    # Track requests
+try:
+    ip = "127.0.0.1"
+    port = 2005
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('localhost', 8000))  # Replace with the appropriate address
-    server.listen(1)
-    client_socket, address = server.accept()
+    server.bind((ip, port))
+    server.listen(port)  # Server config
 
-    clinet_socket = None  # Declare and initialize the variable
+    def start_server():
+            while True:
+                try:
+                    # Track requests
+                    clinet_socket, address = server.accept()
+                    data = clinet_socket.recv(1024).decode("utf-8")
+                    res_content = data_processing(data)
+                    clinet_socket.send(res_content)
+                    shutdown_server(clinet_socket)
 
-    while True:
+                except KeyboardInterrupt as e:
+                    # If close the connect in console
+                    print("server: close server")
+                    shutdown_server(clinet_socket)
+
+                except Exception as e:
+                    # If close the connect in console
+                    shutdown_server(clinet_socket)
+
+    def data_processing(response_data):
+        # Headers
+        headers_ok = "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\n\r\n".encode(
+            "utf-8")
+        headers_fail = "HTTP/1.1 400 FAIl\r\nContent-Type: application/json; charset=utf-8\r\n\r\n".encode(
+            "utf-8")
+        # Send response
         try:
-            data = client_socket.recv(1024).decode("utf-8")
-            res_content = data_processing(data)
-            print("server started")
-            client_socket.send(res_content)
-            shutdown_server(client_socket)
+            print(response_data)
+            s = response_data.splitlines()
+            data = json.loads(s[-1])
+            funct = data["funct"]
+            print(funct)
 
-        except KeyboardInterrupt:
-            # If the connection is closed from the console
-            print("server: close server")
-            shutdown_server(client_socket)
+            if funct == 'process_telegram_login':
+                process_telegram_login()
+            elif funct == 'process_telegram_contact_to_two_w':
+                process_telegram_contact_to_two_w()
+            elif funct == 'process_telegram_contact_to_three_w':
+                process_telegram_contact_to_three_w()
+            elif funct == 'process_telegram_contact_to_two_p':
+                process_telegram_contact_to_two_p()
+            elif funct == 'process_telegram_contact_to_three_p':
+                process_telegram_contact_to_three_p()
+            elif funct == 'process_telegram_contact_to_emoji':
+                process_telegram_contact_to_emoji()
+            return headers_ok
 
-        except Exception as e:
-            print("server: Exception occurred -", str(e))
-            shutdown_server(client_socket)
-
-
-def data_processing(response_data):
-    # Headers
-    headers_ok = "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\n\r\n".encode(
-        "utf-8")
-    headers_fail = "HTTP/1.1 400 FAIL\r\nContent-Type: application/json; charset=utf-8\r\n\r\n".encode(
-        "utf-8")
-    
-    # Send response
-    try:
-        s = response_data.splitlines()
-        data = json.loads(s[-1])
-        funct = data["funct"]
-        
-        if funct == 'process_telegram_contact':
-            process_telegram_contact()
-        elif funct == 'process_telegram_login':
-            process_telegram_login()
-        elif funct == 'start_server':
-            start_server()
-
-    except IndexError:
-        print("server-req: Fail IndexError")
-        return headers_fail
+        except IndexError:
+            print("server-req: Fail IndexError")
+            return headers_fail
 
 
-def shutdown_server(client_socket):
-    if client_socket:
+    def shutdown_server(client_socket):
         client_socket.shutdown(socket.SHUT_WR)
-        # Close the connection with the client
 
-start_server()
+    start_server()
+    
+except KeyboardInterrupt:
+    print("shutting down the server")
