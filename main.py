@@ -56,7 +56,7 @@ try:
                 process_telegram_contact_to_three_p()
             elif funct == 'process_telegram_contact_to_emoji':
                 process_telegram_contact_to_emoji()
-            return headers_ok
+                return headers_ok
 
         except IndexError:
             print("server-req: Fail IndexError")
